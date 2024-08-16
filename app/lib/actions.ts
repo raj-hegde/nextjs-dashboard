@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres'
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { requestToBodyStream } from 'next/dist/server/body-streams';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -67,7 +68,18 @@ export async function createInvoice(prevState: State, formData: FormData) {
     redirect('/dashboard/invoices');
 }
 
-export async function updateInvoice(id: string, formData: FormData) {
+export async function updateInvoice(id: string, prevState: State, formData: FormData) {
+    const validateFields = UpdateInvoice.safeParse({
+        customerId: formData.get('customerId'),
+        amount: formData.get('amount'),
+        status: formData.get('status'),
+    })
+    if (!validateFields.success) {
+        return {
+            errors: validateFields.error.flatten()
+        }
+    }
+
     const { customerId, amount, status } = UpdateInvoice.parse({
         customerId: formData.get('customerId'),
         amount: formData.get('amount'),
